@@ -1,0 +1,110 @@
+
+struct Ions {
+     float        SO4, NO3, NH4, Ca, Mg, K, Na, Cl, PO4;
+   };
+   struct T_eqK {
+     float       HCO3, HCO3_Tref, pCO2;
+     float       Alox, Alox_Tref, expAl;
+   };
+   FILE           *FpOut;
+   void           *theVSDdll;
+   BOOL           start = 1;   /* must be windows BOOL (4 byte boolean) */
+   double         fac;
+   /*
+    * input parameters
+    */
+   float          parentCa = -1.;
+   float          pCO2a = 0.0003162;
+   int            iy, iyb = 0, iye = 500, ierr, ne, nf, j, n;
+   float          thick = 0.5;
+   float          rho = 1.3;
+   float          theta = 0.30, thetao;
+   float          pCO2fac = 15.;
+   float          CEC = 50.;
+   int            modExc = 2;
+   float          lgKAlBC= 0.;
+   float          lgKHBC = 2.;
+   float          lgKAlox = 8.;
+   float          CNMin = 15.;
+   float          CNMax = 40.;
+   struct T_eqK   eqK;
+   struct Ions    Dep[2100], Wea, Upt, Uact, Solid, cmin;
+   float          ps = 0.3;
+   float          Nimmacc = 0.02; 
+   float          SO2dep[501], SO2depA[2] = {0.03,0.3};
+   float          Noxdep[501], NH3dep[501], NoxdepA[2] = {0.01,0.10};
+   float          KAlox,KAlBc,KHBc,pCO2;
+   char           errmsg[LE];
+   float          expAl = 3;
+   float          fde = 0.1;
+   float          Cpool = 4000., CNrat = 39., CNseq = 20.;
+   float          coacid = 0.05;
+   float          pKpar[3] = {4.5,0.,0.}; /* monoprotic model*/
+   float          Sadmax = 10.,Sadh = 0.1, Padmax = 0., Padh=0.;
+   float          temp = 10.;
+    /*float          Nup = 0.;*/
+    /*
+    * output par's
+    */
+   struct Ions    Conc;
+   float          NO3im, NH4im, NH4ni, NO3de, cH, cAl, cHCO3;
+   float          ECa, EMg =-1., EK=-1., EBc, EAl, EH, cANC, cOrg, pH;
+   /*
+    * critical loads parameters
+    */
+   int            iAci = 1;    /* critriom to be used: molar Al/BC ratio */
+   float          critAci = 1; /* value for critical molar Al/Bc ratio */
+   float          ANCle, CLmaxS, CLminN, CLmaxN; /* SMB output parameters */
+   /*
+    * deposition series
+    */
+   static const int nd = 6;
+   int iyd[6] = {1800,1900,1950,1975,1990,2010};
+   float sdep[6] = {0.03,0.10,0.25,0.47,0.20,0.15};
+   float ndep[6] = {0.01,0.03,0.08,0.14,0.2,0.18};
+
+
+/*
+    * standard values for this test
+    */
+   cmin.NO3 = 0.0;                      /* minimum concentrations */
+   cmin.Ca  = 0.0001;
+   cmin.Mg  = 0.0001;
+   cmin.K   = 0.0001;
+   Wea.Ca   = 0.05;                     /* weathering */
+   Wea.K    = 0.;
+   Wea.Na   = 0;
+   Wea.Mg   = 0.;
+   Upt.NO3  = 0.08;                     /* uptake */
+   Upt.Ca   = 0.01;
+   Upt.Mg   = 0.;
+   Upt.K    = 0.;
+   /*
+    *  create deposition time-series
+    */
+   n=0;
+   for (j=0; j < nd-1; j++) {
+     for (iy = iyd[j]; iy < iyd[j+1]; iy++) {
+       fac = (double) (iy - iyd[j]) / (double) (iyd[j+1]-iyd[j]);
+       Dep[n].SO4 = sdep[j] + (sdep[j+1] - sdep[j]) * fac;
+       Dep[n].NO3 = ndep[j] + (ndep[j+1] - ndep[j]) * fac;
+       Dep[n].NH4 = 0.;
+       Dep[n].Ca  = 0.01;               /* constant Bc deposition */
+       Dep[n].Mg  = 0.01;
+       Dep[n].Na  = 0.04;
+       Dep[n].Cl  = 0.08;
+       Dep[n].K   = 0.01;
+       n++;
+     }
+   }
+   /*
+    *  conversion of units
+    */
+   KAlox = 3.* pow(10.,(lgKAlox+3.-3.*expAl));
+   KAlBc = sqrt(20.)/(pow(3,(1./3.))) * pow (10.,lgKAlBC);
+   KHBc  = sqrt(0.002)*pow(10.,lgKHBC);
+   pCO2 = pCO2a*pCO2fac;
+   eqK.pCO2 = pCO2;
+   eqK.expAl = expAl;
+   eqK.Alox = KAlox;
+

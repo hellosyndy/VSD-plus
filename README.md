@@ -1,3 +1,4 @@
 # VSD-plus
 dynamic models for soil simulation
-isolate input/output part
+
+isolate input/output part by Wei Li
